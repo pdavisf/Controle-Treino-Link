@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Pro - Controle de Treino</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #10b981; /* Verde esmeralda */
+            --bg: #0f172a; /* Azul muito escuro */
+            --card-bg: #1e293b; /* Azul ardósia escuro */
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --danger: #ef4444;
+            --success: #10b981;
+            --neutral: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            padding-bottom: 100px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .header-badge {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        h1 { font-size: 1.5rem; margin: 0; }
+
+        /* Seleção de Dias */
+        .day-nav {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            scrollbar-width: none;
+        }
+        .day-nav::-webkit-scrollbar { display: none; }
+
+        .day-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 10px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: 0.2s;
+        }
+
+        .day-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Card de Exercício */
+        .exercise-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: 0.3s;
+        }
+
+        .exercise-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .exercise-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .exercise-title-group { flex: 1; }
+        .exercise-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            width: 100%;
+        }
+        .exercise-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .toggle-icon { color: var(--text-muted); transition: 0.3s; }
+        .exercise-card.collapsed .toggle-icon { transform: rotate(-90deg); }
+        .exercise-card.collapsed .exercise-body { display: none; }
+
+        .exercise-body {
+            padding: 0 16px 16px 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Grid de Semanas */
+        .weeks-table {
+            width: 100%;
+            margin-top: 15px;
+        }
+        .table-header {
+            display: grid;
+            grid-template-columns: 40px 1fr 1fr;
+            padding: 8px 0;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .week-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 1fr;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+        }
+        .week-label { font-size: 0.8rem; font-weight: 600; color: var(--primary); }
+
+        .input-control {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+        }
+        .input-control input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            font-weight: 600;
+            padding: 8px 0;
+            font-size: 0.9rem;
+        }
+        .input-control button {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+
+        /* Resumo */
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.03);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; }
+        .stat-value { font-weight: 700; color: var(--primary); }
+
+        .chart-container {
+            height: 180px;
+            margin-top: 15px;
+            position: relative;
+        }
+
+        /* Botões Flutuantes */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .delete-btn {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .save-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-badge">Personal Pro</div>
+        <h1>Controle de Treino</h1>
+    </header>
+
+    <div class="day-nav" id="dayNav">
+        <button class="day-btn active" onclick="setDay('Segunda')">Segunda</button>
+        <button class="day-btn" onclick="setDay('Terça')">Terça</button>
+        <button class="day-btn" onclick="setDay('Quarta')">Quarta</button>
+        <button class="day-btn" onclick="setDay('Quinta')">Quinta</button>
+        <button class="day-btn" onclick="setDay('Sexta')">Sexta</button>
+    </div>
+
+    <div id="exerciseList"></div>
+</div>
+
+<div class="fab" onclick="addNewExercise()">
+    <i class="fas fa-plus"></i>
+</div>
+
+<div id="saveToast" class="save-toast">Alterações salvas!</div>
+
+<script>
+    let currentDay = 'Segunda';
+    let data = JSON.parse(localStorage.getItem('gym_pro_data')) || {
+        'Segunda': [], 'Terça': [], 'Quarta': [], 'Quinta': [], 'Sexta': []
+    };
+    const charts = {};
+
+    function setDay(day) {
+        currentDay = day;
+        document.querySelectorAll('.day-btn').forEach(b => b.classList.toggle('active', b.innerText === day));
+        render();
+    }
+
+    function addNewExercise() {
+        const ex = {
+            id: 'ex_' + Date.now(),
+            name: 'Novo Exercício',
+            method: 'Normal',
+            collapsed: false,
+            weeks: Array(8).fill(0).map(() => ({ kg: 0, reps: 12 }))
+        };
+        data[currentDay].push(ex);
+        save();
+        render();
+    }
+
+    function toggleCollapse(id) {
+        const ex = data[currentDay].find(e => e.id === id);
+        ex.collapsed = !ex.collapsed;
+        save();
+        render();
+    }
+
+    function updateVal(id, weekIdx, field, val) {
+        const ex = data[currentDay].find(e => e.id === id);
+        ex.weeks[weekIdx][field] = parseFloat(val) || 0;
+        save();
+        updateChart(id);
+        updateStats(id);
+    }
+
+    function stepVal(id, weekIdx, field, delta) {
+        const ex = data[currentDay].find(e => e.id === id);
+        ex.weeks[weekIdx][field] = Math.max(0, (ex.weeks[weekIdx][field] || 0) + delta);
+        save();
+        render(); // Re-render to update input values
+    }
+
+    function updateInfo(id, field, val) {
+        const ex = data[currentDay].find(e => e.id === id);
+        ex[field] = val;
+        save();
+    }
+
+    function deleteEx(id) {
+        if(confirm('Remover exercício?')) {
+            data[currentDay] = data[currentDay].filter(e => e.id !== id);
+            save();
+            render();
+        }
+    }
+
+    function save() {
+        localStorage.setItem('gym_pro_data', JSON.stringify(data));
+        const toast = document.getElementById('saveToast');
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 1500);
+    }
+
+    function getProgressionColor(weeks) {
+        const last = weeks.filter(w => w.kg > 0);
+        if (last.length < 2) return '#64748b';
+        const current = last[last.length - 1].kg;
+        const prev = last[last.length - 2].kg;
+        if (current > prev) return '#10b981';
+        if (current < prev) return '#ef4444';
+        return '#3b82f6';
+    }
+
+    function render() {
+        const container = document.getElementById('exerciseList');
+        container.innerHTML = '';
+
+        data[currentDay].forEach(ex => {
+            const card = document.createElement('div');
+            card.className = `exercise-card ${ex.collapsed ? 'collapsed' : ''}`;
+            
+            let tableRows = '';
+            ex.weeks.forEach((w, i) => {
+                tableRows += `
+                    <div class="week-row">
+                        <div class="week-label">S${i+1}</div>
+                        <div class="input-control">
+                            <button onclick="stepVal('${ex.id}', ${i}, 'reps', -1)">-</button>
+                            <input type="number" value="${w.reps}" onchange="updateVal('${ex.id}', ${i}, 'reps', this.value)">
+                            <button onclick="stepVal('${ex.id}', ${i}, 'reps', 1)">+</button>
+                        </div>
+                        <div class="input-control">
+                            <input type="number" step="0.5" placeholder="kg" value="${w.kg}" onchange="updateVal('${ex.id}', ${i}, 'kg', this.value)">
+                        </div>
+                    </div>
+                `;
+            });
+
+            const maxKg = Math.max(...ex.weeks.map(w => w.kg));
+
+            card.innerHTML = `
+                <div class="exercise-header" onclick="if(event.target.tagName !== 'INPUT') toggleCollapse('${ex.id}')">
+                    <div class="exercise-icon"><i class="fas fa-dumbbell"></i></div>
+                    <div class="exercise-title-group">
+                        <input class="exercise-name" value="${ex.name}" onclick="event.stopPropagation()" onchange="updateInfo('${ex.id}', 'name', this.value)">
+                        <div class="exercise-meta">
+                            <span>8 semanas</span> • 
+                            <input style="background:none; border:none; color:inherit; font-size:inherit; width:60px" 
+                                value="${ex.method}" onclick="event.stopPropagation()" onchange="updateInfo('${ex.id}', 'method', this.value)">
+                        </div>
+                    </div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteEx('${ex.id}')"><i class="fas fa-trash"></i></button>
+                    <div class="toggle-icon"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="exercise-body">
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-label">MAIOR CARGA</div>
+                            <div class="stat-value" id="max-${ex.id}">${maxKg} kg</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">STATUS</div>
+                            <div class="stat-value" id="status-${ex.id}" style="color: ${getProgressionColor(ex.weeks)}">
+                                ${getProgressionStatusText(ex.weeks)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-header">
+                        <div>Seman</div>
+                        <div style="text-align:center">Reps</div>
+                        <div style="text-align:center">Carga (kg)</div>
+                    </div>
+                    <div class="weeks-table">${tableRows}</div>
+                    <div class="chart-container">
+                        <canvas id="chart-${ex.id}"></canvas>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+            initChart(ex);
+        });
+    }
+
+    function getProgressionStatusText(weeks) {
+        const last = weeks.filter(w => w.kg > 0);
+        if (last.length < 2) return 'Iniciando';
+        const current = last[last.length - 1].kg;
+        const prev = last[last.length - 2].kg;
+        if (current > prev) return 'Subindo';
+        if (current < prev) return 'Descendo';
+        return 'Estável';
+    }
+
+    function initChart(ex) {
+        const ctx = document.getElementById(`chart-${ex.id}`).getContext('2d');
+        const color = getProgressionColor(ex.weeks);
+        
+        charts[ex.id] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'],
+                datasets: [{
+                    label: 'Carga',
+                    data: ex.weeks.map(w => w.kg),
+                    borderColor: color,
+                    backgroundColor: color + '22',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: color
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    function updateChart(id) {
+        const ex = data[currentDay].find(e => e.id === id);
+        const chart = charts[id];
+        if (chart) {
+            const color = getProgressionColor(ex.weeks);
+            chart.data.datasets[0].data = ex.weeks.map(w => w.kg);
+            chart.data.datasets[0].borderColor = color;
+            chart.data.datasets[0].backgroundColor = color + '22';
+            chart.data.datasets[0].pointBackgroundColor = color;
+            chart.update();
+        }
+    }
+
+    function updateStats(id) {
+        const ex = data[currentDay].find(e => e.id === id);
+        const maxKg = Math.max(...ex.weeks.map(w => w.kg));
+        document.getElementById(`max-${id}`).innerText = `${maxKg} kg`;
+        const statusEl = document.getElementById(`status-${id}`);
+        statusEl.innerText = getProgressionStatusText(ex.weeks);
+        statusEl.style.color = getProgressionColor(ex.weeks);
+    }
+
+    render();
+</script>
+
+</body>
+</html>
